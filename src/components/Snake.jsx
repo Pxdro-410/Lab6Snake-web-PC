@@ -1,28 +1,29 @@
 import React from 'react';
 
-function Serpiente({ snake, gridSize }) {
+function Serpiente({ snake, gridSize, speed }) {
   if (!snake) return null;
+  const cellSize = 100 / gridSize;
+  const transitionDuration = `${speed * 0.6}ms`;
+
   return (
     <>
       {snake.map((segment, index) => {
+        const isHead = index === 0;
         const style = {
           position: 'absolute',
-          left: `${(segment.x / gridSize) * 100}%`,
-          top: `${(segment.y / gridSize) * 100}%`,
-          width: `${100 / gridSize}%`,
-          height: `${100 / gridSize}%`,
-          backgroundColor: index === 0 ? '#e8e8e4ff' : 'var(--neon-green)',
-          boxShadow: index === 0 ? '0 0 15px blue' : '0 0 75px green',
-          borderRadius: index === 0 ? '6px' : '3px',
-          transition: 'left 1.2s linear, top 1.2s linear'
+          left: `${segment.x * cellSize}%`,
+          top: `${segment.y * cellSize}%`,
+          width: `${cellSize}%`,
+          height: `${cellSize}%`,
+          backgroundColor: isHead ? '#e8e8e4' : 'var(--neon-green)',
+          boxShadow: isHead
+            ? '0 0 8px #fff, 0 0 16px #00f'
+            : '0 0 6px var(--neon-green), 0 0 12px var(--neon-green)',
+          transition: `left ${transitionDuration} linear, top ${transitionDuration} linear`,
+          zIndex: isHead ? 2 : 1,
         };
 
-        return (
-          <div
-            key={`${segment.x}-${segment.y}-${index}`}
-            style={style}
-          />
-        );
+        return <div key={index} style={style} />;
       })}
     </>
   );
