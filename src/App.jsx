@@ -39,6 +39,7 @@ function App() {
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
+  const [difficulty, setDifficulty] = useState('Ninguno'); // 'Fácil' o 'Avanzado'
   const [snake, setSnake] = useState(POSICION_INICIAL_SERPIENTE);
   const [food, setFood] = useState({ x: 5, y: 5 });
   const [direction, setDirection] = useState(DIRECCIONES.ARRIBA);
@@ -47,7 +48,8 @@ function App() {
   const lastDirection = useRef(DIRECCIONES.ARRIBA);
   const directionQueue = useRef([]);
 
-  const startGame = () => {
+  const startGame = (modo) => {
+    setDifficulty(modo);
     setIsStarted(true);
     setIsGameOver(false);
     setScore(0);
@@ -145,10 +147,12 @@ function App() {
           setScore(newScore);
           setFood(generateFood(newSnake));
 
-          // manejo de niveles, cada 5 puntos aumentamos velocidad
+          // manejo de niveles, cada 5 puntos aumentamos velocidad (solo Avanzado)
           if (newScore % 5 === 0) {
             setLevel(prevLevel => prevLevel + 1);
-            setSpeed(prevSpeed => Math.max(50, prevSpeed - 15)); // Límite de velocidad a 50ms
+            if (difficulty === 'Avanzado') {
+              setSpeed(prevSpeed => Math.max(25, prevSpeed - 15)); // Límite de velocidad a 25ms
+            }
           }
           // no removemos la cola, asi la serpiente crece
         } else {
@@ -163,35 +167,46 @@ function App() {
     // Crear el ciclo que ejecuta moveSnake cada 'speed' milisegundos
     const gameInterval = setInterval(moveSnake, speed);
     return () => clearInterval(gameInterval);
-  }, [isStarted, isGameOver, direction, speed, score, food]);
+  }, [isStarted, isGameOver, direction, speed, score, food, difficulty]);
 
   return (
     <div className="app-container">
       <h1 className="game-title">Juego Snake</h1>
 
-      {/* Pasamos el estado como props al Score */}
-      <Score score={score} level={level} />
+      <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', alignItems: 'flex-start' }}>
 
-      <div className="board-wrapper" style={{ position: 'relative', width: 'fit-content', margin: '0 auto' }}>
-        {/* Pasamos el estado como props al Tablero */}
-        <Board gridSize={TAM_GRID} snake={snake} food={food} />
+        {/* Sidebar de Estadísticas */}
+        <div style={{ minWidth: '200px' }}>
+          <Score score={score} level={level} difficulty={difficulty} snakeLength={snake.length} />
+        </div>
 
-        {/* Pantalla de inicio */}
-        {!isStarted && !isGameOver && (
-          <div className="start-screen">
-            <h2>¿Listo para comenzar?</h2>
-            <button onClick={startGame}>START GAME</button>
-          </div>
-        )}
+        <div className="board-wrapper" style={{ position: 'relative', width: 'fit-content' }}>
+          {/* Pasamos el estado como props al Tablero */}
+          <Board gridSize={TAM_GRID} snake={snake} food={food} />
 
-        {/* Pantalla de Game Over */}
-        {isGameOver && (
-          <div className="game-over-screen">
-            <h2 className="game-over-title">GAME OVER</h2>
-            <p className="final-score">PUNTUACIÓN: {score}</p>
-            <button onClick={startGame}>INTENTAR DE NUEVO</button>
-          </div>
-        )}
+          {/* Pantalla de inicio */}
+          {!isStarted && !isGameOver && (
+            <div className="start-screen" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <h2>Elige la Dificultad</h2>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button onClick={() => startGame('Fácil')}>FÁCIL</button>
+                <button onClick={() => startGame('Avanzado')}>AVANZADO</button>
+              </div>
+            </div>
+          )}
+
+          {/* Pantalla de Game Over */}
+          {isGameOver && (
+            <div className="game-over-screen" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <h2 className="game-over-title">GAME OVER</h2>
+              <p className="final-score">PUNTUACIÓN: {score}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button onClick={() => startGame(difficulty)}>REINTENTAR</button>
+                <button onClick={() => { setIsGameOver(false); setIsStarted(false); }} style={{ fontSize: '12px' }}>MENÚ PRINCIPAL</button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
     </div>
