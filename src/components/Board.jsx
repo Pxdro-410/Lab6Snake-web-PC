@@ -4,7 +4,7 @@ import Food from './Food';
 
 function Tablero({ gridSize, snake, food }) {
   return (
-    <div className="board-container" style={{ position: 'relative', width: '700px', height: '500px', border: '2px solid cyan', overflow: 'hidden' }}>
+    <div className="board-container" style={{ position: 'relative', width: '700px', height: '500px', overflow: 'hidden' }}>
       <Snake snake={snake} gridSize={gridSize} />
       <Food food={food} gridSize={gridSize} />
     </div>

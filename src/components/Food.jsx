@@ -8,9 +8,9 @@ function Comida({ food, gridSize }) {
     top: `${(food.y / gridSize) * 100}%`,
     width: `${100 / gridSize}%`,
     height: `${100 / gridSize}%`,
-    backgroundColor: 'red',
+    backgroundColor: 'var(--neon-blue)',
     borderRadius: '50%',
-    boxShadow: '0 0 15px pink'
+    boxShadow: '0 0 15px blue'
   };
 
   return (

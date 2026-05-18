@@ -14,7 +14,7 @@ function Serpiente({ snake, gridSize }) {
           backgroundColor: index === 0 ? '#e8e8e4ff' : 'var(--neon-green)',
           boxShadow: index === 0 ? '0 0 15px blue' : '0 0 75px green',
           borderRadius: index === 0 ? '6px' : '3px',
-          transition: 'left 0.1s linear, top 0.1s linear'
+          transition: 'left 1.2s linear, top 1.2s linear'
         };
 
         return (
