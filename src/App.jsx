@@ -180,7 +180,7 @@ function App() {
           <Score score={score} level={level} difficulty={difficulty} snakeLength={snake.length} />
         </div>
 
-        <div className="board-wrapper" style={{ position: 'relative', width: 'fit-content' }}>
+        <div className="board-wrapper" style={{ position: 'relative', width: 'fit-content', border: '2px solid #00ffff', boxShadow: '0 0 15px #00ffff' }}>
           {/* Pasamos el estado como props al Tablero */}
           <Board gridSize={TAM_GRID} snake={snake} food={food} />
 
