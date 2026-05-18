@@ -22,7 +22,7 @@ const POSICION_INICIAL_SERPIENTE = [
 
 function App() {
   // Estado Global del Juego 
-  const [isStarted, setIsStarted] = useState(true); // Temporalmente true para probar el movimiento
+  const [isStarted, setIsStarted] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
@@ -32,6 +32,22 @@ function App() {
   const [speed, setSpeed] = useState(VELOCIDAD_INICIAL);
 
   const lastDirection = useRef(DIRECCIONES.ARRIBA);
+
+  const startGame = () => {
+    setIsStarted(true);
+    setIsGameOver(false);
+    setScore(0);
+    setLevel(1);
+    setSnake(POSICION_INICIAL_SERPIENTE);
+    setDirection(DIRECCIONES.ARRIBA);
+    lastDirection.current = DIRECCIONES.ARRIBA;
+    setSpeed(VELOCIDAD_INICIAL);
+  };
+
+  const gameOver = () => {
+    setIsGameOver(true);
+    setIsStarted(false);
+  };
 
   // useEffect para el teclado
   useEffect(() => {
@@ -84,6 +100,18 @@ function App() {
 
         lastDirection.current = direction;
 
+        // Colisión con paredes
+        if (head.x < 0 || head.x >= TAM_GRID || head.y < 0 || head.y >= TAM_GRID) {
+          gameOver();
+          return prevSnake;
+        }
+
+        // Colisión consigo misma
+        if (newSnake.some(segment => segment.x === head.x && segment.y === head.y)) {
+          gameOver();
+          return prevSnake;
+        }
+
         // Añadimos la nueva cabeza
         newSnake.unshift(head);
 
@@ -106,8 +134,27 @@ function App() {
       {/* Pasamos el estado como props al Score */}
       <Score score={score} level={level} />
 
-      {/* Pasamos el estado como props al Tablero */}
-      <Board gridSize={TAM_GRID} snake={snake} food={food} />
+      <div className="board-wrapper" style={{ position: 'relative', width: 'fit-content', margin: '0 auto' }}>
+        {/* Pasamos el estado como props al Tablero */}
+        <Board gridSize={TAM_GRID} snake={snake} food={food} />
+
+        {/* Pantalla de inicio */}
+        {!isStarted && !isGameOver && (
+          <div className="start-screen">
+            <h2>¿Listo para comenzar?</h2>
+            <button onClick={startGame}>START GAME</button>
+          </div>
+        )}
+
+        {/* Pantalla de Game Over */}
+        {isGameOver && (
+          <div className="game-over-screen">
+            <h2 className="game-over-title">GAME OVER</h2>
+            <p className="final-score">PUNTUACIÓN: {score}</p>
+            <button onClick={startGame}>INTENTAR DE NUEVO</button>
+          </div>
+        )}
+      </div>
 
     </div>
   );
