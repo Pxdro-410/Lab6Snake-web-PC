@@ -2,13 +2,11 @@ import React from 'react';
 import Snake from './Snake';
 import Food from './Food';
 
-function Tablero() {
+function Tablero({ gridSize, snake, food }) {
   return (
-    <div className="board-container" style={{ width: '600px', height: '400px', border: '2px solid cyan' }}>
-      <p style={{ color: 'cyan' }}>componente tablero</p>
-      {/* Los componentes Snake y Food se renderizaran aqui*/}
-      <Snake />
-      <Food />
+    <div className="board-container" style={{ position: 'relative', width: '700px', height: '500px', border: '2px solid cyan', overflow: 'hidden' }}>
+      <Snake snake={snake} gridSize={gridSize} />
+      <Food food={food} gridSize={gridSize} />
     </div>
   );
 }
