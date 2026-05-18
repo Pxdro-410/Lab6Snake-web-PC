@@ -20,6 +20,19 @@ const POSICION_INICIAL_SERPIENTE = [
   { x: 10, y: 14 }
 ];
 
+const generateFood = (currentSnake) => {
+  let newFood;
+  while (true) {
+    newFood = {
+      x: Math.floor(Math.random() * TAM_GRID),
+      y: Math.floor(Math.random() * TAM_GRID)
+    };
+    const onSnake = currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y);
+    if (!onSnake) break;
+  }
+  return newFood;
+};
+
 function App() {
   // Estado Global del Juego 
   const [isStarted, setIsStarted] = useState(false);
@@ -32,6 +45,7 @@ function App() {
   const [speed, setSpeed] = useState(VELOCIDAD_INICIAL);
 
   const lastDirection = useRef(DIRECCIONES.ARRIBA);
+  const directionQueue = useRef([]);
 
   const startGame = () => {
     setIsStarted(true);
@@ -41,7 +55,9 @@ function App() {
     setSnake(POSICION_INICIAL_SERPIENTE);
     setDirection(DIRECCIONES.ARRIBA);
     lastDirection.current = DIRECCIONES.ARRIBA;
+    directionQueue.current = [];
     setSpeed(VELOCIDAD_INICIAL);
+    setFood(generateFood(POSICION_INICIAL_SERPIENTE));
   };
 
   const gameOver = () => {
@@ -55,28 +71,29 @@ function App() {
       // Ignorar si el juego no está activo
       if (!isStarted || isGameOver) return;
 
-      const ld = lastDirection.current;
+      const queue = directionQueue.current;
+      const ld = queue.length > 0 ? queue[queue.length - 1] : lastDirection.current;
 
       switch (e.key) {
         case 'ArrowUp':
         case 'w':
         case 'W':
-          if (ld.y !== 1) setDirection(DIRECCIONES.ARRIBA);
+          if (ld.y !== 1) queue.push(DIRECCIONES.ARRIBA);
           break;
         case 'ArrowDown':
         case 's':
         case 'S':
-          if (ld.y !== -1) setDirection(DIRECCIONES.ABAJO);
+          if (ld.y !== -1) queue.push(DIRECCIONES.ABAJO);
           break;
         case 'ArrowLeft':
         case 'a':
         case 'A':
-          if (ld.x !== 1) setDirection(DIRECCIONES.IZQUIERDA);
+          if (ld.x !== 1) queue.push(DIRECCIONES.IZQUIERDA);
           break;
         case 'ArrowRight':
         case 'd':
         case 'D':
-          if (ld.x !== -1) setDirection(DIRECCIONES.DERECHA);
+          if (ld.x !== -1) queue.push(DIRECCIONES.DERECHA);
           break;
       }
     };
@@ -90,15 +107,21 @@ function App() {
     if (!isStarted || isGameOver) return;
 
     const moveSnake = () => {
+      let nextDir = direction;
+      if (directionQueue.current.length > 0) {
+        nextDir = directionQueue.current.shift();
+        setDirection(nextDir);
+      }
+
       setSnake(prevSnake => {
         const newSnake = [...prevSnake];
         const head = { ...newSnake[0] };
 
         // Mover cabeza sumando las coordenadas de la dirección actual
-        head.x += direction.x;
-        head.y += direction.y;
+        head.x += nextDir.x;
+        head.y += nextDir.y;
 
-        lastDirection.current = direction;
+        lastDirection.current = nextDir;
 
         // Colisión con paredes
         if (head.x < 0 || head.x >= TAM_GRID || head.y < 0 || head.y >= TAM_GRID) {
@@ -115,8 +138,23 @@ function App() {
         // Añadimos la nueva cabeza
         newSnake.unshift(head);
 
-        // Removemos la cola para dar efecto de movimiento continuo
-        newSnake.pop();
+        // manejo de la logica de comer y puntaje
+        if (head.x === food.x && head.y === food.y) {
+          // si come, sumamos puntos y regeneramos comida
+          const newScore = score + 1;
+          setScore(newScore);
+          setFood(generateFood(newSnake));
+
+          // manejo de niveles, cada 5 puntos aumentamos velocidad
+          if (newScore % 5 === 0) {
+            setLevel(prevLevel => prevLevel + 1);
+            setSpeed(prevSpeed => Math.max(50, prevSpeed - 15)); // Límite de velocidad a 50ms
+          }
+          // no removemos la cola, asi la serpiente crece
+        } else {
+          // Si no comió, removemos la cola para dar efecto de movimiento continuo
+          newSnake.pop();
+        }
 
         return newSnake;
       });
@@ -125,7 +163,7 @@ function App() {
     // Crear el ciclo que ejecuta moveSnake cada 'speed' milisegundos
     const gameInterval = setInterval(moveSnake, speed);
     return () => clearInterval(gameInterval);
-  }, [isStarted, isGameOver, direction, speed]);
+  }, [isStarted, isGameOver, direction, speed, score, food]);
 
   return (
     <div className="app-container">
