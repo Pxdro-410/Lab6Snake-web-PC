@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import Board from './components/Board';
 import Score from './components/Score';
+import Creador from './components/Author';
 
-// Constantes iniciales del juego
 const TAM_GRID = 20;
-const VELOCIDAD_INICIAL = 150;
+const VELOCIDAD_INICIAL = 120;
 
 const DIRECCIONES = {
   ARRIBA: { x: 0, y: -1 },
@@ -27,39 +27,45 @@ const generateFood = (currentSnake) => {
       x: Math.floor(Math.random() * TAM_GRID),
       y: Math.floor(Math.random() * TAM_GRID)
     };
-    const onSnake = currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y);
+    const onSnake = currentSnake.some(s => s.x === newFood.x && s.y === newFood.y);
     if (!onSnake) break;
   }
   return newFood;
 };
 
+const isOpposite = (a, b) => a.x === -b.x && a.y === -b.y;
+
 function App() {
-  // Estado Global del Juego 
   const [isStarted, setIsStarted] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
-  const [difficulty, setDifficulty] = useState('Ninguno'); // 'Fácil' o 'Avanzado'
+  const [difficulty, setDifficulty] = useState('Ninguno');
   const [snake, setSnake] = useState(POSICION_INICIAL_SERPIENTE);
   const [food, setFood] = useState({ x: 5, y: 5 });
-  const [direction, setDirection] = useState(DIRECCIONES.ARRIBA);
   const [speed, setSpeed] = useState(VELOCIDAD_INICIAL);
 
   const lastDirection = useRef(DIRECCIONES.ARRIBA);
-  const directionQueue = useRef([]);
+  const dirQueue = useRef([]);       // maximo 2 direcciones en cola
+  const foodRef = useRef({ x: 5, y: 5 });
+  const scoreRef = useRef(0);
+  const difficultyRef = useRef('Ninguno');
 
   const startGame = (modo) => {
+    difficultyRef.current = modo;
     setDifficulty(modo);
     setIsStarted(true);
     setIsGameOver(false);
+    scoreRef.current = 0;
     setScore(0);
     setLevel(1);
     setSnake(POSICION_INICIAL_SERPIENTE);
-    setDirection(DIRECCIONES.ARRIBA);
     lastDirection.current = DIRECCIONES.ARRIBA;
-    directionQueue.current = [];
+    dirQueue.current = [];
     setSpeed(VELOCIDAD_INICIAL);
-    setFood(generateFood(POSICION_INICIAL_SERPIENTE));
+    const initialFood = generateFood(POSICION_INICIAL_SERPIENTE);
+    foodRef.current = initialFood;
+    setFood(initialFood);
   };
 
   const gameOver = () => {
@@ -67,36 +73,24 @@ function App() {
     setIsStarted(false);
   };
 
-  // useEffect para el teclado
+  // manejo del teclado hasta 2 direcciones en cola
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ignorar si el juego no está activo
       if (!isStarted || isGameOver) return;
+      const queue = dirQueue.current;
+      // Validar contra el último elemento de la cola (o lastDirection si vacía)
+      const validateAgainst = queue.length > 0 ? queue[queue.length - 1] : lastDirection.current;
 
-      const queue = directionQueue.current;
-      const ld = queue.length > 0 ? queue[queue.length - 1] : lastDirection.current;
-
+      let newDir = null;
       switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          if (ld.y !== 1) queue.push(DIRECCIONES.ARRIBA);
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          if (ld.y !== -1) queue.push(DIRECCIONES.ABAJO);
-          break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          if (ld.x !== 1) queue.push(DIRECCIONES.IZQUIERDA);
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          if (ld.x !== -1) queue.push(DIRECCIONES.DERECHA);
-          break;
+        case 'ArrowUp': case 'w': case 'W': newDir = DIRECCIONES.ARRIBA; break;
+        case 'ArrowDown': case 's': case 'S': newDir = DIRECCIONES.ABAJO; break;
+        case 'ArrowLeft': case 'a': case 'A': newDir = DIRECCIONES.IZQUIERDA; break;
+        case 'ArrowRight': case 'd': case 'D': newDir = DIRECCIONES.DERECHA; break;
+      }
+
+      if (newDir && !isOpposite(newDir, validateAgainst) && queue.length < 2) {
+        queue.push(newDir);
       }
     };
 
@@ -104,59 +98,53 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isStarted, isGameOver]);
 
-  // useEffect para el Game Loop 
+  // el loop solo se reinicia cuando cambia speed o el estado del juego
   useEffect(() => {
     if (!isStarted || isGameOver) return;
 
     const moveSnake = () => {
-      let nextDir = direction;
-      if (directionQueue.current.length > 0) {
-        nextDir = directionQueue.current.shift();
-        setDirection(nextDir);
-      }
+      const queue = dirQueue.current;
+      const dir = queue.length > 0 ? queue.shift() : lastDirection.current;
+      const currentFood = foodRef.current;
+      const currentScore = scoreRef.current;
 
       setSnake(prevSnake => {
         const newSnake = [...prevSnake];
         const head = { ...newSnake[0] };
 
-        // Mover cabeza sumando las coordenadas de la dirección actual
-        head.x += nextDir.x;
-        head.y += nextDir.y;
+        head.x += dir.x;
+        head.y += dir.y;
 
-        lastDirection.current = nextDir;
+        lastDirection.current = dir;
 
-        // Colisión con paredes
         if (head.x < 0 || head.x >= TAM_GRID || head.y < 0 || head.y >= TAM_GRID) {
           gameOver();
           return prevSnake;
         }
 
-        // Colisión consigo misma
-        if (newSnake.some(segment => segment.x === head.x && segment.y === head.y)) {
+        if (newSnake.some(seg => seg.x === head.x && seg.y === head.y)) {
           gameOver();
           return prevSnake;
         }
 
-        // Añadimos la nueva cabeza
         newSnake.unshift(head);
 
-        // manejo de la logica de comer y puntaje
-        if (head.x === food.x && head.y === food.y) {
-          // si come, sumamos puntos y regeneramos comida
-          const newScore = score + 1;
+        if (head.x === currentFood.x && head.y === currentFood.y) {
+          const newScore = currentScore + 1;
+          scoreRef.current = newScore;
           setScore(newScore);
-          setFood(generateFood(newSnake));
 
-          // manejo de niveles, cada 5 puntos aumentamos velocidad (solo Avanzado)
+          const newFood = generateFood(newSnake);
+          foodRef.current = newFood;
+          setFood(newFood);
+
           if (newScore % 5 === 0) {
-            setLevel(prevLevel => prevLevel + 1);
-            if (difficulty === 'Avanzado') {
-              setSpeed(prevSpeed => Math.max(25, prevSpeed - 15)); // Límite de velocidad a 25ms
+            setLevel(prev => prev + 1);
+            if (difficultyRef.current === 'Avanzado') {
+              setSpeed(prev => Math.max(75, prev - 15));
             }
           }
-          // no removemos la cola, asi la serpiente crece
         } else {
-          // Si no comió, removemos la cola para dar efecto de movimiento continuo
           newSnake.pop();
         }
 
@@ -164,10 +152,9 @@ function App() {
       });
     };
 
-    // Crear el ciclo que ejecuta moveSnake cada 'speed' milisegundos
     const gameInterval = setInterval(moveSnake, speed);
     return () => clearInterval(gameInterval);
-  }, [isStarted, isGameOver, direction, speed, score, food, difficulty]);
+  }, [isStarted, isGameOver, speed]);
 
   return (
     <div className="app-container">
@@ -175,37 +162,49 @@ function App() {
 
       <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', alignItems: 'flex-start' }}>
 
-        {/* Sidebar de Estadísticas */}
         <div style={{ minWidth: '200px' }}>
           <Score score={score} level={level} difficulty={difficulty} snakeLength={snake.length} />
         </div>
 
         <div className="board-wrapper" style={{ position: 'relative', width: 'fit-content', border: '2px solid var(--neon-pink)', boxShadow: '0 0 15px var(--neon-pink)' }}>
-          {/* Pasamos el estado como props al Tablero */}
-          <Board gridSize={TAM_GRID} snake={snake} food={food} />
+          <Board gridSize={TAM_GRID} snake={snake} food={food} speed={speed} />
 
-          {/* Pantalla de inicio */}
           {!isStarted && !isGameOver && (
-            <div className="start-screen" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-              <h2>Elige la Dificultad</h2>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                <button onClick={() => startGame('Fácil')}>FÁCIL</button>
-                <button onClick={() => startGame('Avanzado')}>AVANZADO</button>
+            <div className="overlay-screen">
+              <h2 className="overlay-title">Elige la Dificultad</h2>
+              <div className="difficulty-buttons">
+                <button className="diff-btn diff-btn--easy" onClick={() => startGame('Fácil')}>
+                  <span className="diff-btn__label">FACIL</span>
+                  <span className="diff-btn__sub">velocidad normal</span>
+                </button>
+                <button className="diff-btn diff-btn--hard" onClick={() => startGame('Avanzado')}>
+                  <span className="diff-btn__label">AVANZADO</span>
+                  <span className="diff-btn__sub">velocidad aumentada</span>
+                </button>
               </div>
             </div>
           )}
 
-          {/* Pantalla de Game Over */}
           {isGameOver && (
-            <div className="game-over-screen" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+            <div className="overlay-screen">
               <h2 className="game-over-title">GAME OVER</h2>
               <p className="final-score">PUNTUACIÓN: {score}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button onClick={() => startGame(difficulty)}>REINTENTAR</button>
-                <button onClick={() => { setIsGameOver(false); setIsStarted(false); }} style={{ fontSize: '12px' }}>MENÚ PRINCIPAL</button>
+              <div className="gameover-buttons">
+                <button className="action-btn action-btn--retry" onClick={() => startGame(difficulty)}>REINTENTAR</button>
+                <button className="action-btn action-btn--menu" onClick={() => { setIsGameOver(false); setIsStarted(false); }}>MENÚ PRINCIPAL</button>
               </div>
             </div>
           )}
+        </div>
+
+        {/* Sidebar del Creador */}
+        <div style={{ minWidth: '200px' }}>
+          <Creador
+            autor="Pedro Caso"
+            carnet="241286"
+            actividad="Laboratorio 6 WEB"
+            fecha="Mayo 2026"
+          />
         </div>
       </div>
 
