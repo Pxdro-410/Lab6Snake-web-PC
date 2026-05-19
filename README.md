@@ -30,3 +30,7 @@ Modos de Juego:
 Al iniciar, deberas seleccionar entre dos dificultades:
 - Facil: La velocidad de la serpiente se mantendra constante sin importar cuanto crezca tu puntuacion.
 - Avanzado: La dificultad es dinamica. Cada vez que recolectes 5 unidades de comida y subas de nivel, la velocidad de movimiento de la serpiente aumentara de manera progresiva.
+
+## Muestra de funcionamiento:
+diseño basado en un estilo retro de arcade
+<img width="1790" height="822" alt="image" src="https://github.com/user-attachments/assets/f86bb172-efe0-49a7-9a53-4a0620eb4129" />
