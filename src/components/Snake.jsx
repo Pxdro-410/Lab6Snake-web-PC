@@ -15,7 +15,7 @@ function Serpiente({ snake, gridSize, speed }) {
           top: `${segment.y * cellSize}%`,
           width: `${cellSize}%`,
           height: `${cellSize}%`,
-          backgroundColor: isHead ? '#e8e8e4' : 'var(--neon-green)',
+          backgroundColor: isHead ? '#d4f9cbff' : 'var(--neon-green)',
           boxShadow: isHead
             ? '0 0 8px #fff, 0 0 16px #00f'
             : '0 0 6px var(--neon-green), 0 0 12px var(--neon-green)',
